@@ -62,7 +62,7 @@ Unlike basic user-agent checkers, this tool uses **10+ advanced techniques**:
 ### Option 2: Self-Host
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/mobile-mdm-checker.git
+git clone https://github.com/sagarmajumdar225/mobile-mdm-checker.git
 cd mobile-mdm-checker
 
 # Open in any browser (no server needed!)
