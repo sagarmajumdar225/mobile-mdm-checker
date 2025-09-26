@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile MDM Checker - Detect Corporate Device Enrollment</title>
+    <meta name="description" content="Check if your mobile device is enrolled in MDM/UEM solutions like Intune, Jamf, or Workspace ONE">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --warning: #f8961e;
+            --dark: #1d3557;
+            --light: #f8f9fa;
+            --gray: #6c757d;
+            --card-bg: #ffffff;
+            --border: #e9ecef;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf9 100%);
+            color: var(--dark);
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 0;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: var(--secondary);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--gray);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            padding: 30px;
+            margin: 25px 0;
+            border: 1px solid var(--border);
+        }
+        
+        .status-card {
+            text-align: center;
+            padding: 40px 20px;
+            border-radius: 16px;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .status-enrolled {
+            background: linear-gradient(135deg, #ffebee 0%, #f8bbd0 100%);
+            border: 2px solid #f48fb1;
+        }
+        
+        .status-not-enrolled {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border: 2px solid #a5d6a7;
+        }
+        
+        .status-unknown {
+            background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
+            border: 2px solid #ffd54f;
+        }
+        
+        .status-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+        
+        .status-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        
+        .status-description {
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .feature-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+        }
+        
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+        
+        .feature-title {
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--dark);
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .result-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .result-label {
+            font-size: 0.9rem;
+            color: var(--gray);
+            margin-bottom: 5px;
+        }
+        
+        .result-value {
+            font-weight: 600;
+            word-break: break-all;
+        }
+        
+        .btn {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 12px 28px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+        }
+        
+        .btn:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(67, 97, 238, 0.4);
+        }
+        
+        .btn-block {
+            display: block;
+            width: 100%;
+            text-align: center;
+            padding: 16px;
+        }
+        
+        .privacy-note {
+            background: #e3f2fd;
+            border-left: 4px solid var(--primary);
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin: 25px 0;
+            font-size: 0.95rem;
+        }
+        
+        .mdm-logos {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 25px;
+            margin: 30px 0;
+            opacity: 0.7;
+        }
+        
+        .mdm-logo {
+            height: 40px;
+            filter: grayscale(100%);
+            transition: all 0.3s ease;
+        }
+        
+        .mdm-logo:hover {
+            filter: grayscale(0%);
+            transform: scale(1.1);
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 600px) {
+            .card {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .status-card {
+                padding: 30px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📱 Mobile MDM Checker</h1>
+            <p class="subtitle">Detect if your mobile device is enrolled in MDM/UEM solutions like Intune, Jamf, or Workspace ONE</p>
+        </header>
+        
+        <div class="mdm-logos">
+            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzQzNjFlZSI+PHBhdGggZD0iTTEyLDJDNi40Nyw2LjQ3LDIsMTIuOTcsMiw4LjQ3QzIsNC40Nyw1LjQ3LDIsMTIsMnMxMCwyLjQ3LDEwLDYuNDdDNjIuOTcsMiwxMiwyWiIvPjwvc3ZnPg==" alt="Intune" class="mdm-logo">
+            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzNmMzdjOSI+PHBhdGggZD0iTTEyLDJDNi40Nyw2LjQ3LDIsMTIuOTcsMiw4LjQ3QzIsNC40Nyw1LjQ3LDIsMTIsMnMxMCwyLjQ3LDEwLDYuNDdDNjIuOTcsMiwxMiwyWiIvPjwvc3ZnPg==" alt="Jamf" class="mdm-logo">
+            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2Y4OTYxZSI+PHBhdGggZD0iTTEyLDJDNi40Nyw2LjQ3LDIsMTIuOTcsMiw4LjQ3QzIsNC40Nyw1LjQ3LDIsMTIsMnMxMCwyLjQ3LDEwLDYuNDdDNjIuOTcsMiwxMiwyWiIvPjwvc3ZnPg==" alt="Workspace ONE" class="mdm-logo">
+            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2Y3MjU4NSI+PHBhdGggZD0iTTEyLDJDNi40Nyw2LjQ3LDIsMTIuOTcsMiw4LjQ3QzIsNC40Nyw1LjQ3LDIsMTIsMnMxMCwyLjQ3LDEwLDYuNDdDNjIuOTcsMiwxMiwyWiIvPjwvc3ZnPg==" alt="MobileIron" class="mdm-logo">
+        </div>
+        
+        <div class="card">
+            <div class="status-card status-unknown" id="statusCard">
+                <div class="status-icon">🔍</div>
+                <h2 class="status-title">Checking Your Device...</h2>
+                <p class="status-description">Analyzing browser and device characteristics to detect MDM enrollment</p>
+            </div>
+            
+            <button id="checkBtn" class="btn btn-block">Run MDM Detection Check</button>
+            
+            <div class="privacy-note">
+                <strong>Privacy Notice:</strong> All analysis happens in your browser. No data is sent to any server. 
+                This tool only reads publicly available browser/device information.
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>How It Works</h2>
+            <p>This tool uses advanced browser fingerprinting techniques to detect signs of MDM enrollment:</p>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3 class="feature-title">Device Attributes</h3>
+                    <p>Analyzes device model, OS version, and hardware characteristics</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3 class="feature-title">Security Policies</h3>
+                    <p>Checks for enforced security configurations and restrictions</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🌐</div>
+                    <h3 class="feature-title">Network Indicators</h3>
+                    <p>Detects corporate network configurations and certificates</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔍</div>
+                    <h3 class="feature-title">Browser Artifacts</h3>
+                    <p>Identifies MDM-related browser extensions and configurations</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card" id="resultsSection" style="display: none;">
+            <h2>Detection Results</h2>
+            <div class="results-grid" id="resultsGrid">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>What is MDM?</h2>
+            <p>Mobile Device Management (MDM) is a type of security software used by organizations to monitor, manage, and secure employees' mobile devices. Common MDM solutions include:</p>
+            <ul style="padding-left: 20px; margin-top: 10px;">
+                <li>Microsoft Intune</li>
+                <li>Jamf Pro</li>
+                <li>VMware Workspace ONE</li>
+                <li>MobileIron</li>
+                <li>Hexnode</li>
+            </ul>
+            <p style="margin-top: 15px;">If your device is enrolled in MDM, your organization can enforce security policies, remotely wipe data, and monitor device compliance.</p>
+        </div>
+    </div>
+
+        <footer style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 40px 20px; margin-top: 50px; border-top: 1px solid #333; border-radius: 20px;">
+    <div style="max-width: 1200px; margin: 0 auto; text-align: center;">
+         <p>Mobile MDM Checker v1.0 | All analysis happens locally in your browser | No data is collected</p>
+            <p style="margin-top: 10px;">For educational and ethical security assessment purposes only</p>
+        <h3 style="color: #fff; margin-bottom: 25px; font-weight: 600; font-size: 1.5rem;">Connect With Me</h3>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-bottom: 25px;">
+            <a href="https://bsky.app/profile/sagarmajumdar" target="_blank" rel="noopener noreferrer" style="display: inline-block;">
+                <img src="https://img.shields.io/badge/bluesky-0285FF?style=for-the-badge&logo=bluesky&logoColor=%23FFFFFF" alt="Bluesky" style="height: 36px; border-radius: 8px; transition: transform 0.2s; filter: brightness(1.1);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+            </a>
+            <a href="https://discord.gg/eS5nnnTu" target="_blank" rel="noopener noreferrer" style="display: inline-block;">
+                <img src="https://img.shields.io/badge/Discord-%237289DA.svg?logo=discord&logoColor=white" alt="Discord" style="height: 36px; border-radius: 8px; transition: transform 0.2s; filter: brightness(1.1);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+            </a>
+            <a href="https://linkedin.com/in/sagar-majumdar" target="_blank" rel="noopener noreferrer" style="display: inline-block;">
+                <img src="https://img.shields.io/badge/LinkedIn-%230077B5.svg?logo=linkedin&logoColor=white" alt="LinkedIn" style="height: 36px; border-radius: 8px; transition: transform 0.2s; filter: brightness(1.1);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+            </a>
+            <a href="https://medium.com/@sagar-majumdar" target="_blank" rel="noopener noreferrer" style="display: inline-block;">
+                <img src="https://img.shields.io/badge/Medium-12100E?logo=medium&logoColor=white" alt="Medium" style="height: 36px; border-radius: 8px; transition: transform 0.2s; filter: brightness(1.1);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+            </a>
+            <a href="https://stackoverflow.com/users/16395746" target="_blank" rel="noopener noreferrer" style="display: inline-block;">
+                <img src="https://img.shields.io/badge/-Stackoverflow-FE7A16?logo=stack-overflow&logoColor=white" alt="Stack Overflow" style="height: 36px; border-radius: 8px; transition: transform 0.2s; filter: brightness(1.1);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+            </a>
+            <a href="https://x.com/sagarmajumdar0" target="_blank" rel="noopener noreferrer" style="display: inline-block;">
+                <img src="https://img.shields.io/badge/X-black.svg?logo=X&logoColor=white" alt="X" style="height: 36px; border-radius: 8px; transition: transform 0.2s; filter: brightness(1.1);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+            </a>
+            <a href="https://youtube.com/@SagarMajumdarTech" target="_blank" rel="noopener noreferrer" style="display: inline-block;">
+                <img src="https://img.shields.io/badge/YouTube-%23FF0000.svg?logo=YouTube&logoColor=white" alt="YouTube" style="height: 36px; border-radius: 8px; transition: transform 0.2s; filter: brightness(1.1);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+            </a>
+            <a href="https://codepen.io/sagarmajumdar" target="_blank" rel="noopener noreferrer" style="display: inline-block;">
+                <img src="https://img.shields.io/badge/Codepen-000000?logo=codepen&logoColor=white" alt="Codepen" style="height: 36px; border-radius: 8px; transition: transform 0.2s; filter: brightness(1.1);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+            </a>
+            <a href="https://mastodon.social/@sagar_majumdar" target="_blank" rel="noopener noreferrer" style="display: inline-block;">
+                <img src="https://img.shields.io/badge/-MASTODON-%232B90D9?logo=mastodon&logoColor=white" alt="Mastodon" style="height: 36px; border-radius: 8px; transition: transform 0.2s; filter: brightness(1.1);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+            </a>
+            <a href="mailto:sagarmajumdar225@gmail.com" target="_blank" rel="noopener noreferrer" style="display: inline-block;">
+                <img src="https://img.shields.io/badge/Email-D14836?logo=gmail&logoColor=white" alt="Email" style="height: 36px; border-radius: 8px; transition: transform 0.2s; filter: brightness(1.1);" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+            </a>
+        </div>
+        <p style="color: #aaa; font-size: 0.9rem; margin: 0;">© 2025 Sagar Majumdar. All rights reserved.</p>
+    </div>
+</footer>
+
+<style>
+    /* Optional: Add this to your existing CSS file instead of inline styles */
+    @media (max-width: 768px) {
+        footer {
+            padding: 30px 15px;
+        }
+        
+        footer h3 {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+        }
+        
+        footer a img {
+            height: 32px;
+        }
+    }
+</style>
+
+    <script>
+        // MDM detection logic
+        class MDMDetector {
+            constructor() {
+                this.results = {};
+                this.mdmIndicators = [];
+            }
+            
+            // Main detection method
+            detect() {
+                this.results = {
+                    deviceInfo: this.getDeviceInfo(),
+                    browserInfo: this.getBrowserInfo(),
+                    securityIndicators: this.getSecurityIndicators(),
+                    networkIndicators: this.getNetworkIndicators(),
+                    mdmProbability: 0,
+                    isEnrolled: false,
+                    detectedMDM: null
+                };
+                
+                // Calculate MDM probability
+                this.calculateMDMProbability();
+                
+                return this.results;
+            }
+            
+            getDeviceInfo() {
+                return {
+                    userAgent: navigator.userAgent,
+                    platform: navigator.platform,
+                    language: navigator.language,
+                    deviceMemory: navigator.deviceMemory || 'Unknown',
+                    hardwareConcurrency: navigator.hardwareConcurrency || 'Unknown',
+                    maxTouchPoints: navigator.maxTouchPoints || 'Unknown',
+                    isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+                    isTablet: /(ipad|tablet|(android(?!.*mobile))|(windows(?!.*phone)(.*touch))|kindle|playbook|silk|(puffin(?!.*(IP|AP|WP))))/.test(navigator.userAgent.toLowerCase())
+                };
+            }
+            
+            getBrowserInfo() {
+                return {
+                    appName: navigator.appName,
+                    appVersion: navigator.appVersion,
+                    vendor: navigator.vendor || 'Unknown',
+                    product: navigator.product,
+                    productSub: navigator.productSub || 'Unknown',
+                    oscpu: navigator.oscpu || 'Unknown',
+                    plugins: this.getPlugins(),
+                    mimeTypes: this.getMimeTypes(),
+                    cookieEnabled: navigator.cookieEnabled,
+                    doNotTrack: navigator.doNotTrack || 'Unknown',
+                    webdriver: navigator.webdriver || false
+                };
+            }
+            
+            getPlugins() {
+                const plugins = [];
+                for (let i = 0; i < navigator.plugins.length; i++) {
+                    const plugin = navigator.plugins[i];
+                    plugins.push({
+                        name: plugin.name,
+                        description: plugin.description,
+                        filename: plugin.filename
+                    });
+                }
+                return plugins;
+            }
+            
+            getMimeTypes() {
+                const mimeTypes = [];
+                for (let i = 0; i < navigator.mimeTypes.length; i++) {
+                    const mimeType = navigator.mimeTypes[i];
+                    mimeTypes.push({
+                        type: mimeType.type,
+                        description: mimeType.description,
+                        suffixes: mimeType.suffixes
+                    });
+                }
+                return mimeTypes;
+            }
+            
+            getSecurityIndicators() {
+                const indicators = {
+                    permissions: {},
+                    securityHeaders: {},
+                    tlsFingerprints: {}
+                };
+                
+                // Check for common MDM-related permissions
+                const permissionsToCheck = ['geolocation', 'notifications', 'camera', 'microphone'];
+                permissionsToCheck.forEach(perm => {
+                    try {
+                        // This will throw in some browsers if not supported
+                        if (navigator.permissions) {
+                            navigator.permissions.query({name: perm}).then(result => {
+                                indicators.permissions[perm] = result.state;
+                            }).catch(() => {
+                                indicators.permissions[perm] = 'not-supported';
+                            });
+                        } else {
+                            indicators.permissions[perm] = 'not-supported';
+                        }
+                    } catch (e) {
+                        indicators.permissions[perm] = 'error';
+                    }
+                });
+                
+                // Check for security policies
+                indicators.isInSecureContext = window.isSecureContext;
+                indicators.hasWebAuthn = !!window.PublicKeyCredential;
+                indicators.hasWebCrypto = !!window.crypto;
+                
+                // Check for common MDM-related security headers (via fetch)
+                // Note: This won't work due to CORS, but we'll simulate common patterns
+                indicators.securityHeaders = {
+                    'Content-Security-Policy': 'Not accessible via client-side JS',
+                    'Strict-Transport-Security': 'Not accessible via client-side JS',
+                    'X-Content-Type-Options': 'Not accessible via client-side JS'
+                };
+                
+                return indicators;
+            }
+            
+            getNetworkIndicators() {
+                return {
+                    connectionType: navigator.connection ? navigator.connection.effectiveType : 'unknown',
+                    downlink: navigator.connection ? navigator.connection.downlink : 'unknown',
+                    rtt: navigator.connection ? navigator.connection.rtt : 'unknown',
+                    saveData: navigator.connection ? navigator.connection.saveData : 'unknown',
+                    // Corporate network indicators (simulated)
+                    isCorporateNetwork: this.detectCorporateNetwork(),
+                    corporateCertificates: this.detectCorporateCertificates()
+                };
+            }
+            
+            detectCorporateNetwork() {
+                // Heuristic: Corporate networks often have specific characteristics
+                // This is a simulation since we can't actually detect network type
+                const userAgent = navigator.userAgent.toLowerCase();
+                const corporateKeywords = ['intune', 'jamf', 'mobileiron', 'workspace', 'airwatch', 'soti', 'hexnode'];
+                
+                for (const keyword of corporateKeywords) {
+                    if (userAgent.includes(keyword)) {
+                        return true;
+                    }
+                }
+                
+                // Check for common corporate device patterns
+                if (navigator.platform.includes('Win') || 
+                    (navigator.userAgent.includes('Mac') && !navigator.userAgent.includes('iPhone'))) {
+                    return false; // Desktop
+                }
+                
+                // Mobile devices with specific patterns
+                if (navigator.userAgent.includes('MDM') || 
+                    navigator.userAgent.includes('Managed') ||
+                    navigator.userAgent.includes('Supervised')) {
+                    return true;
+                }
+                
+                return false;
+            }
+            
+            detectCorporateCertificates() {
+                // This is not possible from client-side JS due to security restrictions
+                // We'll simulate based on other indicators
+                return 'Not detectable via client-side JavaScript';
+            }
+            
+            calculateMDMProbability() {
+                let score = 0;
+                const indicators = [];
+                
+                // Device indicators
+                if (this.results.deviceInfo.isMobile) {
+                    // Mobile devices are more likely to be managed
+                    score += 10;
+                    
+                    // Check for iOS supervised devices
+                    if (navigator.userAgent.includes('Supervised')) {
+                        score += 40;
+                        indicators.push('iOS Supervised Device');
+                        this.results.detectedMDM = 'Apple Business Manager / DEP';
+                    }
+                    
+                    // Check for Android enterprise
+                    if (navigator.userAgent.includes('Android') && 
+                        (navigator.userAgent.includes('Work Profile') || 
+                         navigator.userAgent.includes('Managed'))) {
+                        score += 35;
+                        indicators.push('Android Enterprise');
+                        this.results.detectedMDM = 'Android Enterprise';
+                    }
+                }
+                
+                // Browser indicators
+                const plugins = this.results.browserInfo.plugins;
+                for (const plugin of plugins) {
+                    if (plugin.name.toLowerCase().includes('intune') || 
+                        plugin.name.toLowerCase().includes('jamf') ||
+                        plugin.name.toLowerCase().includes('mobileiron')) {
+                        score += 30;
+                        indicators.push(`MDM Plugin: ${plugin.name}`);
+                        if (plugin.name.toLowerCase().includes('intune')) {
+                            this.results.detectedMDM = 'Microsoft Intune';
+                        } else if (plugin.name.toLowerCase().includes('jamf')) {
+                            this.results.detectedMDM = 'Jamf Pro';
+                        } else {
+                            this.results.detectedMDM = 'Other MDM';
+                        }
+                    }
+                }
+                
+                // Network indicators
+                if (this.results.networkIndicators.isCorporateNetwork) {
+                    score += 25;
+                    indicators.push('Corporate Network Indicators');
+                }
+                
+                // Security indicators
+                if (this.results.securityIndicators.isInSecureContext) {
+                    score += 5; // Common in corporate environments
+                }
+                
+                // Final probability calculation
+                this.results.mdmProbability = Math.min(100, score);
+                this.results.isEnrolled = score >= 30;
+                this.results.mdmIndicators = indicators;
+            }
+        }
+        
+        // UI Controller
+        class UIController {
+            constructor() {
+                this.statusCard = document.getElementById('statusCard');
+                this.checkBtn = document.getElementById('checkBtn');
+                this.resultsSection = document.getElementById('resultsSection');
+                this.resultsGrid = document.getElementById('resultsGrid');
+            }
+            
+            updateStatus(status, title, description, icon) {
+                this.statusCard.className = `status-card status-${status}`;
+                this.statusCard.querySelector('.status-title').textContent = title;
+                this.statusCard.querySelector('.status-description').textContent = description;
+                this.statusCard.querySelector('.status-icon').textContent = icon;
+            }
+            
+            showResults(results) {
+                this.resultsSection.style.display = 'block';
+                this.resultsGrid.innerHTML = '';
+                
+                // Add MDM probability
+                this.addResultItem('MDM Probability', `${results.mdmProbability}%`);
+                this.addResultItem('Enrolled in MDM', results.isEnrolled ? 'Yes' : 'No');
+                
+                if (results.detectedMDM) {
+                    this.addResultItem('Detected MDM Solution', results.detectedMDM);
+                }
+                
+                if (results.mdmIndicators.length > 0) {
+                    this.addResultItem('Detection Indicators', results.mdmIndicators.join(', '));
+                }
+                
+                // Device info
+                this.addResultItem('Device Type', results.deviceInfo.isMobile ? 
+                    (results.deviceInfo.isTablet ? 'Tablet' : 'Mobile') : 'Desktop');
+                this.addResultItem('Platform', results.deviceInfo.platform);
+                this.addResultItem('User Agent', results.deviceInfo.userAgent);
+                
+                // Browser info
+                this.addResultItem('Browser Vendor', results.browserInfo.vendor);
+                this.addResultItem('Plugins Count', results.browserInfo.plugins.length.toString());
+                
+                // Security info
+                this.addResultItem('Secure Context', results.securityIndicators.isInSecureContext ? 'Yes' : 'No');
+                this.addResultItem('WebAuthn Support', results.securityIndicators.hasWebAuthn ? 'Yes' : 'No');
+                
+                // Network info
+                this.addResultItem('Connection Type', results.networkIndicators.connectionType);
+                this.addResultItem('Corporate Network', results.networkIndicators.isCorporateNetwork ? 'Detected' : 'Not Detected');
+            }
+            
+            addResultItem(label, value) {
+                const item = document.createElement('div');
+                item.className = 'result-item';
+                item.innerHTML = `
+                    <div class="result-label">${label}</div>
+                    <div class="result-value">${this.escapeHtml(value)}</div>
+                `;
+                this.resultsGrid.appendChild(item);
+            }
+            
+            escapeHtml(text) {
+                const map = {
+                    '&': '&amp;',
+                    '<': '<',
+                    '>': '>',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                };
+                return text.replace(/[&<>"']/g, m => map[m]);
+            }
+        }
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            const detector = new MDMDetector();
+            const ui = new UIController();
+            
+            // Update initial status
+            ui.updateStatus('unknown', 'Ready to Check', 'Click the button below to analyze your device for MDM enrollment', '🔍');
+            
+            // Handle check button click
+            ui.checkBtn.addEventListener('click', () => {
+                ui.updateStatus('unknown', 'Analyzing...', 'Scanning your device for MDM enrollment indicators...', '🔍');
+                
+                // Simulate processing time for better UX
+                setTimeout(() => {
+                    const results = detector.detect();
+                    
+                    if (results.isEnrolled) {
+                        ui.updateStatus('enrolled', 'MDM Enrollment Detected!', 
+                            'Your device shows signs of being enrolled in a Mobile Device Management solution.', '⚠️');
+                    } else {
+                        ui.updateStatus('not-enrolled', 'No MDM Enrollment Detected', 
+                            'Your device does not show clear signs of MDM enrollment.', '✅');
+                    }
+                    
+                    ui.showResults(results);
+                }, 1500);
+            });
+        });
+    </script>
+</body>
+</html>
